@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linear Regression Calculator</title>
+<style>
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(to right, #6a11cb, #2575fc);
+    margin: 0;
+    padding: 0;
+    color: #333;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+    padding: 30px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 2.5rem;
+    color: #4a148c;
+  }
+
+  .dataset-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+  }
+
+  .dataset-btn {
+    background: #eee;
+  }
+
+  .dataset-btn.active {
+    background: linear-gradient(to right, #6a11cb, #2575fc);
+    color: white;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+  }
+
+  th, td {
+    padding: 10px;
+    border: 1px solid #ccc;
+    text-align: center;
+  }
+
+  th {
+    background: #6a11cb;
+    color: white;
+  }
+
+  input {
+    width: 90%;
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    text-align: center;
+  }
+
+  .add-btn {
+    background: #4caf50;
+    color: white;
+    margin: 10px 0;
+  }
+
+  .remove-btn {
+    background: #e53935;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+  }
+
+  .output {
+    margin-top: 25px;
+    padding: 15px;
+    border-radius: 10px;
+    background: #f3e5f5;
+    color: #311b92;
+  }
+
+  .prediction {
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 15px;
+  }
+
+  .highlight {
+    background: #ede7f6;
+    padding: 10px;
+    border-radius: 8px;
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>📊 Linear Regression Calculator</h1>
+  <p style="text-align:center;">Select a dataset or enter your own values.</p>
+
+  <div class="dataset-buttons">
+    <button class="dataset-btn active" onclick="loadDataset('house')">🏠 House Prices</button>
+    <button class="dataset-btn" onclick="loadDataset('dynasty')">🏺 Dynasties</button>
+    <button class="dataset-btn" onclick="loadDataset('artifacts')">⚱️ Artifacts</button>
+    <button class="dataset-btn" onclick="loadDataset('monuments')">🏛 Monuments</button>
+  </div>
+
+  <button class="add-btn" onclick="addRow()">➕ Add Data Point</button>
+
+  <table id="dataTable">
+    <thead>
+      <tr>
+        <th>X</th>
+        <th>Y</th>
+        <th>Remove</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="prediction">
+    <label>Predict for X = </label>
+    <input type="number" id="predictInput" value="180">
+    <button onclick="calculate()">Calculate</button>
+  </div>
+
+  <div class="output" id="output"></div>
+</div>
+
+<script>
+  const datasets = {
+    house: [
+      {x: 80, y: 900}, {x: 100, y: 1100}, {x: 115, y: 1200},
+      {x: 130, y: 1400}, {x: 150, y: 2000}, {x: 200, y: 2300}
+    ],
+    dynasty: [
+      {x: 1, y: 210}, {x: 2, y: 204}, {x: 3, y: 73},
+      {x: 4, y: 119}, {x: 5, y: 149}, {x: 6, y: 164}
+    ],
+    artifacts: [
+      {x: 2686, y: 450}, {x: 2613, y: 520}, {x: 2494, y: 680},
+      {x: 2345, y: 720}, {x: 2181, y: 290}, {x: 2055, y: 380}
+    ],
+    monuments: [
+      {x: 2560, y: 2580000}, {x: 2500, y: 500000},
+      {x: 2670, y: 850000}, {x: 2000, y: 1200000}, {x: 1400, y: 600000}
+    ]
+  };
+
+  let data = [];
+
+  function loadDataset(name) {
+    data = JSON.parse(JSON.stringify(datasets[name]));
+    document.querySelectorAll('.dataset-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    displayTable();
+  }
+
+  function displayTable() {
+    const tbody = document.querySelector('#dataTable tbody');
+    tbody.innerHTML = '';
+    data.forEach((point, i) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><input type="number" value="${point.x}" onchange="updateData(${i}, 'x', this.value)"></td>
+        <td><input type="number" value="${point.y}" onchange="updateData(${i}, 'y', this.value)"></td>
+        <td><button class="remove-btn" onclick="removeRow(${i})">🗑</button></td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function updateData(index, field, value) {
+    data[index][field] = parseFloat(value) || 0;
+  }
+
+  function addRow() {
+    data.push({x: 0, y: 0});
+    displayTable();
+  }
+
+  function removeRow(i) {
+    if (data.length > 2) {
+      data.splice(i, 1);
+      displayTable();
+    }
+  }
+
+  function calculate() {
+    if (data.length < 2) return alert("At least 2 data points required!");
+
+    const n = data.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+
+    data.forEach(p => {
+      sumX += p.x;
+      sumY += p.y;
+      sumXY += p.x * p.y;
+      sumX2 += p.x * p.x;
+    });
+
+    const m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const meanX = sumX / n;
+    const meanY = sumY / n;
+    const b = meanY - m * meanX;
+
+    let ssRes = 0, ssTot = 0;
+    data.forEach(p => {
+      const yPred = m * p.x + b;
+      ssRes += Math.pow(p.y - yPred, 2);
+      ssTot += Math.pow(p.y - meanY, 2);
+    });
+    const r2 = 1 - (ssRes / ssTot);
+
+    const xPredict = parseFloat(document.getElementById('predictInput').value);
+    const yPredict = m * xPredict + b;
+
+    document.getElementById('output').innerHTML = `
+      <h3>Results:</h3>
+      <div class="highlight">ŷ = ${m.toFixed(4)}x + (${b.toFixed(4)})</div>
+      <p><b>Predicted Y for X=${xPredict}:</b> ${yPredict.toFixed(2)}</p>
+      <p><b>R² Score:</b> ${r2.toFixed(4)}</p>
+      <p><b>m =</b> ${m.toFixed(4)}, <b>b =</b> ${b.toFixed(4)}</p>
+      <hr>
+      <p><b>Formulas Used:</b></p>
+      <div class="highlight">
+        m = [n(ΣXY) - (ΣX)(ΣY)] / [n(ΣX²) - (ΣX)²]<br>
+        b = mean(Y) - m × mean(X)
+      </div>
+    `;
+  }
+
+  // Default dataset
+  loadDataset('house');
+</script>
+</body>
+</html>
